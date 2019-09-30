@@ -187,7 +187,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variables.                                                          #
         #######################################################################
         sample_mean = np.sum(x, 0) / N
-        sample_var = np.sum(np.squad(x - sample_mean), 0) / N
+        sample_var = np.sum(np.square(x - sample_mean), 0) / N
         sqrtVar = np.sqrt(sample_var + eps)
         norm = (x - sample_mean) / sqrtVar
         out = gamma * norm + beta
@@ -204,7 +204,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # then scale and shift the normalized data using gamma and beta.      #
         # Store the result in the out variable.                               #
         #######################################################################
-        out = gamma * ((x - running_mean) / np.sqrt(running_mean + eps)) + beta
+        out = gamma * ((x - running_mean) / np.sqrt(running_var + eps)) + beta
         #######################################################################
         #                          END OF YOUR CODE                           #
         #######################################################################
