@@ -193,7 +193,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         out = gamma * norm + beta
         running_mean = momentum * running_mean + (1 - momentum) * sample_mean
         running_var = momentum * running_var + (1 - momentum) * sample_var
-        cache = (x, gamma, norm, sample_var, eps)
+        cache = (x, gamma, norm, sample_mean, sample_var, N, eps)
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -238,15 +238,17 @@ def batchnorm_backward(dout, cache):
                 
     
     dx, dgamma, dbeta = None, None, None
-    x, gamma, norm, sample_var, eps = cache
+    x, gamma, norm, mean, var, N, eps = cache
     ###########################################################################
     # TODO: Implement the backward pass for batch normalization. Store the    #
     # results in the dx, dgamma, and dbeta variables.                         #
     ###########################################################################
-    dbeta = np.sum(dout, 0)
-    dgamma = np.multiply(dout, norm)
-    sqrtVar = np.sqrt(sample_var + eps)
-    dx = (gamma / sqrtVar) * dout
+    dnorm = dout * gamma
+    dvar  = -0.5 * np.sum(dnorm * (x - mean) * np.power(var + eps, -3.0/2.0), axis=0)
+    dmean = (np.sum(dnorm * -1.0 / np.sqrt(var + eps), axis=0) + dvar * np.sum(-2.0 * (x - mean), axis=0) / N)
+    dx = dnorm * 1.0 / np.sqrt(var + eps) + dvar * 2.0 * (x - mean) / N + dmean / N
+    dgamma = np.sum(norm * dout, axis=0)
+    dbeta = np.sum(dout, axis=0)
                 
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -317,8 +319,8 @@ def dropout_forward(x, dropout_param):
         # TODO: Implement training phase forward pass for inverted dropout.   #
         # Store the dropout mask in the mask variable.                        #
         #######################################################################
-        mask = (np.random.randn(x.shape) < p)
-        out = x * (np.random.randn(x.shape) < p) / p
+        mask = (np.random.rand(*x.shape) < p)  / p
+        out = x * mask
         #######################################################################
         #                           END OF YOUR CODE                          #
         #######################################################################
@@ -347,7 +349,6 @@ def dropout_backward(dout, cache):
     """
     dropout_param, mask = cache
     mode = dropout_param['mode']
-
     dx = None
     if mode == 'train':
         #######################################################################
